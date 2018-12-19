@@ -30,23 +30,26 @@ import java.util.function.Supplier;
 public interface CircuitBreakerRegistry {
 
     /**
-     * Returns all managed {@link CircuitBreaker} instances.
+     * 返回所有的CircuitBreaker实例
      *
+     * Returns all managed {@link CircuitBreaker} instances.
      * @return all managed {@link CircuitBreaker} instances.
      */
     Seq<CircuitBreaker> getAllCircuitBreakers();
 
     /**
-     * Returns a managed {@link CircuitBreaker} or creates a new one with the default CircuitBreaker configuration.
+     * 根据名称返回CircuitBreaker实例，如果不存在则根据默认配置，创建CircuitBreaker实例并返回
      *
+     * Returns a managed {@link CircuitBreaker} or creates a new one with the default CircuitBreaker configuration.
      * @param name the name of the CircuitBreaker
      * @return The {@link CircuitBreaker}
      */
     CircuitBreaker circuitBreaker(String name);
 
     /**
-     * Returns a managed {@link CircuitBreaker} or creates a new one with a custom CircuitBreaker configuration.
+     * 根据名称返回CircuitBreaker实例，如果不存在则 根据传入的配置实例，创建CircuitBreaker实例并返回
      *
+     * Returns a managed {@link CircuitBreaker} or creates a new one with a custom CircuitBreaker configuration.
      * @param name      the name of the CircuitBreaker
      * @param circuitBreakerConfig  a custom CircuitBreaker configuration
      * @return The {@link CircuitBreaker}
@@ -63,8 +66,9 @@ public interface CircuitBreakerRegistry {
     CircuitBreaker circuitBreaker(String name, Supplier<CircuitBreakerConfig> circuitBreakerConfigSupplier);
 
     /**
-     * Creates a CircuitBreakerRegistry with a custom CircuitBreaker configuration.
+     * 根据自定义的配置，创建CircuitBreakerRegistry实例。线程安全的单例。
      *
+     * Creates a CircuitBreakerRegistry with a custom CircuitBreaker configuration.
      * @param circuitBreakerConfig a custom CircuitBreaker configuration
      * @return a CircuitBreakerRegistry with a custom CircuitBreaker configuration.
      */
@@ -73,8 +77,9 @@ public interface CircuitBreakerRegistry {
     }
 
     /**
-     * Creates a CircuitBreakerRegistry with a default CircuitBreaker configuration.
+     * 使用默认配置，创建CircuitBreakerRegistry实例。线程安全的单例。
      *
+     * Creates a CircuitBreakerRegistry with a default CircuitBreaker configuration.
      * @return a CircuitBreakerRegistry with a default CircuitBreaker configuration.
      */
     static CircuitBreakerRegistry ofDefaults(){
