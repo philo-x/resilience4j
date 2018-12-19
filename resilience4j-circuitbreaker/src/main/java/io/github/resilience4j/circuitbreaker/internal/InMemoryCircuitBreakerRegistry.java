@@ -46,7 +46,10 @@ public final class InMemoryCircuitBreakerRegistry implements CircuitBreakerRegis
      * The constructor with default circuitBreaker properties.
      */
     public InMemoryCircuitBreakerRegistry() {
+        // 创建默认配置实例
         this.defaultCircuitBreakerConfig = CircuitBreakerConfig.ofDefaults();
+
+        // 创建并发安全的容器放置CircuitBreaker实例
         this.circuitBreakers = new ConcurrentHashMap<>();
     }
 
@@ -66,6 +69,8 @@ public final class InMemoryCircuitBreakerRegistry implements CircuitBreakerRegis
     }
 
     /**
+     * 调用CircuitBreaker.of(...)方法创建CircuitBreaker实例
+     *
      * {@inheritDoc}
      */
     @Override
