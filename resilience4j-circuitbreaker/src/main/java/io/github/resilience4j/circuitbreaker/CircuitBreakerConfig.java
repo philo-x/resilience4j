@@ -28,11 +28,15 @@ import java.util.function.Predicate;
  * A {@link CircuitBreakerConfig} configures a {@link CircuitBreaker}
  */
 public class CircuitBreakerConfig {
-
+    // 请求失败的阈值，百分比。默认是50%
     public static final int DEFAULT_MAX_FAILURE_THRESHOLD = 50; // Percentage
+    // 熔断器在打开状态时的持续时间。默认是60秒
     public static final int DEFAULT_WAIT_DURATION_IN_OPEN_STATE = 60; // Seconds
+    // 熔断器在半开状态下的ring buffer大小。默认10
     public static final int DEFAULT_RING_BUFFER_SIZE_IN_HALF_OPEN_STATE = 10;
+    // 熔断器在关闭状态下的ring buffer大小。默认100
     public static final int DEFAULT_RING_BUFFER_SIZE_IN_CLOSED_STATE = 100;
+    // 是否记录请求失败的断言，默认所有异常都记录。
     public static final Predicate<Throwable> DEFAULT_RECORD_FAILURE_PREDICATE = (throwable) -> true;
 
     private float failureRateThreshold = DEFAULT_MAX_FAILURE_THRESHOLD;
@@ -88,12 +92,15 @@ public class CircuitBreakerConfig {
         return new Builder().build();
     }
 
+    /**
+     * 构造者模式
+     */
     public static class Builder {
         private Predicate<Throwable> recordFailurePredicate;
         private Predicate<Throwable> errorRecordingPredicate;
-        @SuppressWarnings("unchecked")
+        // 请求失败，存储异常记录的集合
         private Class<? extends Throwable>[] recordExceptions = new Class[0];
-        @SuppressWarnings("unchecked")
+        // 请求失败，忽略异常记录的集合
         private Class<? extends Throwable>[] ignoreExceptions = new Class[0];
         private float failureRateThreshold = DEFAULT_MAX_FAILURE_THRESHOLD;
         private int ringBufferSizeInHalfOpenState = DEFAULT_RING_BUFFER_SIZE_IN_HALF_OPEN_STATE;
@@ -237,8 +244,9 @@ public class CircuitBreakerConfig {
         }
 
         /**
-         * Builds a CircuitBreakerConfig
+         * 构造CircuitBreakerConfig实例
          *
+         * Builds a CircuitBreakerConfig
          * @return the CircuitBreakerConfig
          */
         public CircuitBreakerConfig build() {
@@ -253,6 +261,9 @@ public class CircuitBreakerConfig {
             return config;
         }
 
+        /**
+         * 异常记录集合与异常忽略集合取交集，如果有值则为false，否则为true。
+         */
         private void buildErrorRecordingPredicate() {
             this.errorRecordingPredicate =
                     getRecordingPredicate()
