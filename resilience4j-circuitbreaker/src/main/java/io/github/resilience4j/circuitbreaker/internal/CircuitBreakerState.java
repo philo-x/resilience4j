@@ -26,23 +26,46 @@ import io.github.resilience4j.circuitbreaker.event.CircuitBreakerEvent;
  */
 abstract class CircuitBreakerState{
 
+    // 有限状态机实例，内部实现了状态转换机制
     CircuitBreakerStateMachine stateMachine;
 
     CircuitBreakerState(CircuitBreakerStateMachine stateMachine) {
         this.stateMachine = stateMachine;
     }
 
+    /**
+     * 是否允许请求调用后端接口
+     * @return
+     */
     abstract boolean isCallPermitted();
 
+    /**
+     * 请求调用失败，记录指标。
+     * 当达到设定的指标值后，调用状态机实例触发状态转换
+     * @param throwable
+     */
     abstract void onError(Throwable throwable);
 
+    /**
+     * 请求调用成功，记录指标。
+     * 当达到设定的指标值后，调用状态机实例触发状态转换
+     */
     abstract void onSuccess();
 
+    /**
+     * 返回当前状态在CircuitBreaker接口中对应的枚举值
+     * @return
+     */
     abstract CircuitBreaker.State getState();
 
+    /**
+     * 返回当前状态的指标度量类的实例
+     * @return
+     */
     abstract CircuitBreakerMetrics getMetrics();
 
     /**
+     * 是否发布事件
      * Should the CircuitBreaker in this state publish events
      * @return a boolean signaling if the events should be published
      */
