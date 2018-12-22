@@ -24,9 +24,9 @@ import java.time.Duration;
 import java.time.Instant;
 
 final class OpenState extends CircuitBreakerState {
-    // 打开状态的持续时间，
+    // 打开状态的持续时间，在配置类CircuitBreakerConfig的实例中已设置
     private final Instant retryAfterWaitDuration;
-    // 打开状态的度量指标，在配置类CircuitBreakerConfig的实例中已设置
+    // 打开状态的度量指标
     private final CircuitBreakerMetrics circuitBreakerMetrics;
 
     OpenState(CircuitBreakerStateMachine stateMachine, CircuitBreakerMetrics circuitBreakerMetrics) {
