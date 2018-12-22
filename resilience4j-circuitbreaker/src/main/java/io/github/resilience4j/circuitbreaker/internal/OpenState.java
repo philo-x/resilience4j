@@ -24,8 +24,9 @@ import java.time.Duration;
 import java.time.Instant;
 
 final class OpenState extends CircuitBreakerState {
-
+    // 打开状态的持续时间，
     private final Instant retryAfterWaitDuration;
+    // 打开状态的度量指标，在配置类CircuitBreakerConfig的实例中已设置
     private final CircuitBreakerMetrics circuitBreakerMetrics;
 
     OpenState(CircuitBreakerStateMachine stateMachine, CircuitBreakerMetrics circuitBreakerMetrics) {
@@ -40,15 +41,14 @@ final class OpenState extends CircuitBreakerState {
     }
 
     /**
-     * Returns false, if the wait duration has not elapsed.
-     * Returns true, if the wait duration has elapsed and transitions the state machine to HALF_OPEN state.
-     *
-     * @return false, if the wait duration has not elapsed. true, if the wait duration has elapsed.
+     * 如果到达了打开状态的持续时间，则触发状态机，从打开状态转换到半开状态，允许请求调用后端接口
+     * 否则返回false，不允许请求调用后端接口
      */
     @Override
     boolean isCallPermitted() {
         // Thread-safe
         if (Instant.now().isAfter(retryAfterWaitDuration)) {
+            // 从打开状态转换到半开状态
             stateMachine.transitionToHalfOpenState();
             return true;
         }

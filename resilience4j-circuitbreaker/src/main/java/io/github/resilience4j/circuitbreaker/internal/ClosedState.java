@@ -25,7 +25,7 @@ final class ClosedState extends CircuitBreakerState {
 
     // 关闭状态的度量指标
     private final CircuitBreakerMetrics circuitBreakerMetrics;
-    // 请求调用的失败率阈值
+    // 请求调用的失败率阈值，在配置类CircuitBreakerConfig的实例中已设置
     private final float failureRateThreshold;
 
     ClosedState(CircuitBreakerStateMachine stateMachine) {
