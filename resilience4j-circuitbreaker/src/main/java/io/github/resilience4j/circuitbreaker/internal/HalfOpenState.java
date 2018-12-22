@@ -22,8 +22,9 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 
 final class HalfOpenState extends CircuitBreakerState {
-
+    // 半开状态的度量指标
     private CircuitBreakerMetrics circuitBreakerMetrics;
+    // 请求调用的失败率阈值，在配置类CircuitBreakerConfig的实例中已设置
     private final float failureRateThreshold;
 
     HalfOpenState(CircuitBreakerStateMachine stateMachine) {
@@ -57,10 +58,11 @@ final class HalfOpenState extends CircuitBreakerState {
     }
 
     /**
+     * 如果当前失败率大于等于阈值，则当前状态转换到打开状态。
+     * 否则，当前状态转换到关闭状态
      * Checks if the current failure rate is above or below the threshold.
      * If the failure rate is above the threshold, transition the state machine to OPEN state.
      * If the failure rate is below the threshold, transition the state machine to CLOSED state.
-     *
      * @param currentFailureRate the current failure rate
      */
     private void checkFailureRate(float currentFailureRate) {
