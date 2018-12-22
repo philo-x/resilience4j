@@ -41,14 +41,14 @@ abstract class CircuitBreakerState{
 
     /**
      * 请求调用失败，记录指标。
-     * 当达到设定的指标值后，调用状态机实例触发状态转换
+     * 当达到设定的度量指标值后，调用状态机实例触发状态转换
      * @param throwable
      */
     abstract void onError(Throwable throwable);
 
     /**
      * 请求调用成功，记录指标。
-     * 当达到设定的指标值后，调用状态机实例触发状态转换
+     * 当达到设定的度量指标值后，调用状态机实例触发状态转换
      */
     abstract void onSuccess();
 
@@ -59,7 +59,7 @@ abstract class CircuitBreakerState{
     abstract CircuitBreaker.State getState();
 
     /**
-     * 返回当前状态的指标度量类的实例
+     * 返回当前状态的封装了度量指标的类实例
      * @return
      */
     abstract CircuitBreakerMetrics getMetrics();
