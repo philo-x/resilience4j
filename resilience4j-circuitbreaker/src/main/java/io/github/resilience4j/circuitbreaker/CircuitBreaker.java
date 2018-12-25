@@ -212,6 +212,8 @@ public interface CircuitBreaker {
     }
 
     /**
+     * 设置与5中状态对应的枚举类型，主要是为了方便进行判等操作
+     * 同时也设置了每种状态是否发布事件
      * States of the CircuitBreaker state machine.
      */
     enum State {
