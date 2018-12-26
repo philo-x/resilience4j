@@ -24,9 +24,11 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import java.util.concurrent.atomic.LongAdder;
 
 class CircuitBreakerMetrics implements CircuitBreaker.Metrics {
-
+    // 环形缓冲区大小
     private final int ringBufferSize;
+    //Ring Bit Buffer
     private final RingBitSet ringBitSet;
+    // 不允许请求调用通过的数量，采用并发更加高效的LongAdder类型
     private final LongAdder numberOfNotPermittedCalls;
 
     CircuitBreakerMetrics(int ringBufferSize) {
@@ -55,21 +57,21 @@ class CircuitBreakerMetrics implements CircuitBreaker.Metrics {
     }
 
     /**
-     * Records a failed call and returns the current failure rate in percentage.
-     *
+     * 在Ring Bit Buffer中记录此次调用失败，返回请求调用失败率
      * @return the current failure rate  in percentage.
      */
     float onError() {
+        // 当前请求调用失败次数
         int currentNumberOfFailedCalls = ringBitSet.setNextBit(true);
         return getFailureRate(currentNumberOfFailedCalls);
     }
 
     /**
-     * Records a successful call and returns the current failure rate in percentage.
-     *
+     * 在Ring Bit Buffer中记录此次调用成功，返回请求调用失败率
      * @return the current failure rate in percentage.
      */
     float onSuccess() {
+        // 当前请求调用失败次数
         int currentNumberOfFailedCalls = ringBitSet.setNextBit(false);
         return getFailureRate(currentNumberOfFailedCalls);
     }
@@ -129,6 +131,11 @@ class CircuitBreakerMetrics implements CircuitBreaker.Metrics {
         return this.ringBitSet.cardinality();
     }
 
+    /**
+     * 请求数达到Ring buffer的大小时，计算请求调用失败率
+     * @param numberOfFailedCalls
+     * @return
+     */
     private float getFailureRate(int numberOfFailedCalls) {
         if (getNumberOfBufferedCalls() < ringBufferSize) {
             return -1.0f;
