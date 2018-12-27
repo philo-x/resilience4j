@@ -22,21 +22,36 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class EventProcessor<T> implements EventPublisher<T> {
-
+    // 是否有consumer注册
     protected volatile boolean consumerRegistered;
+    // 处理T类型事件的consumer
     private volatile EventConsumer<T> onEventConsumer;
+    // consumer容器
     private ConcurrentMap<Class<? extends T>, EventConsumer<Object>> eventConsumers = new ConcurrentHashMap<>();
 
     public boolean hasConsumers(){
         return consumerRegistered;
     }
 
+    /**
+     * 向容器中注册consumer
+     * @param eventType
+     * @param eventConsumer
+     * @param <E>
+     */
     @SuppressWarnings("unchecked")
     public <E extends T> void registerConsumer(Class<? extends E> eventType, EventConsumer<E> eventConsumer){
         consumerRegistered = true;
         eventConsumers.put(eventType, (EventConsumer<Object>) eventConsumer);
     }
 
+    /**
+     * 调用consumer的consumeEvent函数处理事件，
+     * 返回true: 已处理，false: 未处理
+     * @param event
+     * @param <E>
+     * @return
+     */
     @SuppressWarnings("unchecked")
     public <E extends T> boolean processEvent(E event) {
         boolean consumed = false;
@@ -54,6 +69,10 @@ public class EventProcessor<T> implements EventPublisher<T> {
         return consumed;
     }
 
+    /**
+     * 设置T类型事件的consumer
+     * @param onEventConsumer
+     */
     @Override
     public void onEvent(EventConsumer<T> onEventConsumer) {
         consumerRegistered = true;
