@@ -322,7 +322,7 @@ public interface CircuitBreaker {
     }
 
     /**
-     * An EventPublisher can be used to register event consumers.
+     * 用于注册处理事件的consumer
      */
     interface EventPublisher extends io.github.resilience4j.core.EventPublisher<CircuitBreakerEvent> {
 
@@ -342,47 +342,54 @@ public interface CircuitBreaker {
     interface Metrics {
 
         /**
+         * 返回失败百分比，如果统计的度量数低于最小可度量数，则返回-1
+         *
          * Returns the failure rate in percentage. If the number of measured calls is below the minimum number of measured calls,
          * it returns -1.
-         *
          * @return the failure rate in percentage
          */
         float getFailureRate();
 
         /**
-         * Returns the current number of buffered calls.
+         * 返回当前总的请求调用数量
          *
+         * Returns the current number of buffered calls.
          * @return he current number of buffered calls
          */
         int getNumberOfBufferedCalls();
 
         /**
-         * Returns the current number of failed calls.
+         * 返回当前失败的请求调用数量
          *
+         * Returns the current number of failed calls.
          * @return the current number of failed calls
          */
         int getNumberOfFailedCalls();
 
         /**
+         * 在打开状态下，返回当前不被允许请求调用的数量
+         * 在关闭状态和半开状态下，总是返回0
+         *
          * Returns the current number of not permitted calls, when the state is OPEN.
          *
          * The number of denied calls is always 0, when the CircuitBreaker state is CLOSED or HALF_OPEN.
          * The number of denied calls is only increased when the CircuitBreaker state is OPEN.
-         *
          * @return the current number of not permitted calls
          */
         long getNumberOfNotPermittedCalls();
 
         /**
-         * Returns the maximum number of buffered calls.
+         * 返回环形缓存区最大的调用数量
          *
+         * Returns the maximum number of buffered calls.
          * @return the maximum number of buffered calls
          */
         int getMaxNumberOfBufferedCalls();
 
         /**
-         * Returns the current number of successful calls.
+         * 返回当前成功请求调用的数量
          *
+         * Returns the current number of successful calls.
          * @return the current number of successful calls
          */
         int getNumberOfSuccessfulCalls();
