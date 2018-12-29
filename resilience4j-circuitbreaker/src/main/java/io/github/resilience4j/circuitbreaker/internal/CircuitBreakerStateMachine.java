@@ -103,8 +103,10 @@ public final class CircuitBreakerStateMachine implements CircuitBreaker {
      */
     @Override
     public boolean isCallPermitted() {
+        // 当前的状态是否允许请求调用
         boolean callPermitted = stateReference.get().isCallPermitted();
         if (!callPermitted) {
+            // 发布不允许请求调用的事件
             publishCallNotPermittedEvent();
         }
         return callPermitted;
@@ -112,18 +114,24 @@ public final class CircuitBreakerStateMachine implements CircuitBreaker {
 
     @Override
     public void onError(long durationInNanos, Throwable throwable) {
+        // 判断请求调用抛出的异常是否需要记录，默认所有异常都需要记录
         if (circuitBreakerConfig.getRecordFailurePredicate().test(throwable)) {
             LOG.debug("CircuitBreaker '{}' recorded a failure:", name, throwable);
+            // 发布请求调用失败事件
             publishCircuitErrorEvent(name, durationInNanos, throwable);
+            // 调用当前状态的onError(throwable)方法进行失败率统计，当达到阈值时触发状态转换
             stateReference.get().onError(throwable);
         } else {
+            // 发布忽略异常事件
             publishCircuitIgnoredErrorEvent(name, durationInNanos, throwable);
         }
     }
 
     @Override
     public void onSuccess(long durationInNanos) {
+        // 发布请求调用成功事件
         publishSuccessEvent(durationInNanos);
+        // 调用当前状态的onSuccess()方法进行失败率统计，当达到阈值时触发状态转换
         stateReference.get().onSuccess();
     }
 
