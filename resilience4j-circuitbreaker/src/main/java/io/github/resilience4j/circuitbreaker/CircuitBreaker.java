@@ -539,11 +539,14 @@ public interface CircuitBreaker {
                 // 执行被装饰的方法
                 T returnValue = supplier.get();
                 long durationInNanos = System.nanoTime() - start;
-                // 调用成功，则
+                // 调用成功，则在Ring buffer中记录成功状态，计算失败率。
+                // 失败率达到阈值，则触发状态转换
                 circuitBreaker.onSuccess(durationInNanos);
                 return returnValue;
             } catch (Throwable throwable) {
                 long durationInNanos = System.nanoTime() - start;
+                // 调用失败，则在Ring buffer中记录失败状态，计算失败率。
+                // 失败率达到阈值，则触发状态转换
                 circuitBreaker.onError(durationInNanos, throwable);
                 throw throwable;
             }
