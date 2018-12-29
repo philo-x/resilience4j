@@ -257,6 +257,7 @@ public interface CircuitBreaker {
     }
 
     /**
+     * 有限状态机所有可能发生的状态转换，用于在状态转换事件中表示那两种状态发生了转换
      * State transitions of the CircuitBreaker state machine.
      */
     enum StateTransition {
@@ -322,7 +323,7 @@ public interface CircuitBreaker {
     }
 
     /**
-     * 用于注册处理事件的consumer
+     * 事件处理器，即用于注册consumer，也用于处理事件。
      */
     interface EventPublisher extends io.github.resilience4j.core.EventPublisher<CircuitBreakerEvent> {
 
@@ -337,8 +338,11 @@ public interface CircuitBreaker {
         EventPublisher onIgnoredError(EventConsumer<CircuitBreakerOnIgnoredErrorEvent> eventConsumer);
 
         EventPublisher onCallNotPermitted(EventConsumer<CircuitBreakerOnCallNotPermittedEvent> eventConsumer);
-        }
+    }
 
+    /**
+     * 度量指标接口，用于观察熔断器各项指标。
+     */
     interface Metrics {
 
         /**
@@ -528,11 +532,14 @@ public interface CircuitBreaker {
      */
     static <T> Supplier<T> decorateSupplier(CircuitBreaker circuitBreaker, Supplier<T> supplier){
         return () -> {
+            // 如果熔断器是打开状态，则抛出异常，不执行下面的代码
             CircuitBreakerUtils.isCallPermitted(circuitBreaker);
             long start = System.nanoTime();
             try {
+                // 执行被装饰的方法
                 T returnValue = supplier.get();
                 long durationInNanos = System.nanoTime() - start;
+                // 调用成功，则
                 circuitBreaker.onSuccess(durationInNanos);
                 return returnValue;
             } catch (Throwable throwable) {
@@ -669,6 +676,7 @@ public interface CircuitBreaker {
         };
     }
 
+    /** 默认配置实现方式 **/
     /**
      * Creates a CircuitBreaker with a default CircuitBreaker configuration.
      *
@@ -680,6 +688,7 @@ public interface CircuitBreaker {
         return new CircuitBreakerStateMachine(name);
     }
 
+    /** 定制配置实现方式 **/
     /**
      * Creates a CircuitBreaker with a custom CircuitBreaker configuration.
      *
@@ -692,6 +701,7 @@ public interface CircuitBreaker {
         return new CircuitBreakerStateMachine(name, circuitBreakerConfig);
     }
 
+    /** 定制配置实现方式，用了JAVA8的Supplier **/
     /**
      * Creates a CircuitBreaker with a custom CircuitBreaker configuration.
      *
