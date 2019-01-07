@@ -43,6 +43,7 @@ import java.util.function.Supplier;
  */
 public interface RateLimiter {
 
+    /** 根据定制的限流器配置对象，创建限流器对象 **/
     /**
      * Creates a RateLimiter with a custom RateLimiter configuration.
      *
@@ -54,6 +55,7 @@ public interface RateLimiter {
         return new AtomicRateLimiter(name, rateLimiterConfig);
     }
 
+    /** 同上 **/
     /**
      * Creates a RateLimiter with a custom RateLimiterConfig configuration.
      *
@@ -65,6 +67,7 @@ public interface RateLimiter {
         return new AtomicRateLimiter(name, rateLimiterConfigSupplier.get());
     }
 
+    /** 根据默认限流器配置对象，创建限流器对象 **/
     /**
      * Creates a RateLimiter with a default RateLimiterConfig configuration.
      *

@@ -44,11 +44,15 @@ import static java.util.concurrent.locks.LockSupport.parkNanos;
  * {@link AtomicRateLimiter.State}
  */
 public class AtomicRateLimiter implements RateLimiter {
+    // 记录限流器启动时系统时间(纳秒)
     private static final long nanoTimeStart = nanoTime();
-
+    // 限流器名称
     private final String name;
+    // 等待的线程数
     private final AtomicInteger waitingThreads;
+    // 限流器状态
     private final AtomicReference<State> state;
+    // 事件处理器
     private final RateLimiterEventProcessor eventProcessor;
 
 
@@ -147,13 +151,15 @@ public class AtomicRateLimiter implements RateLimiter {
     private State updateStateWithBackOff(final long timeoutInNanos) {
         AtomicRateLimiter.State prev;
         AtomicRateLimiter.State next;
+        // CAS
         do {
             prev = state.get();
+            // 计算下一个状态
             next = calculateNextState(timeoutInNanos, prev);
         } while (!compareAndSet(prev, next));
         return next;
     }
-
+    /** AtomicReference CAS **/
     /**
      * Atomically sets the value to the given updated value
      * if the current value {@code ==} the expected value.
@@ -178,6 +184,9 @@ public class AtomicRateLimiter implements RateLimiter {
     }
 
     /**
+     * 从当前状态计算下一个状态
+     */
+    /**
      * A side-effect-free function that can calculate next {@link State} from current.
      * It determines time duration that you should wait for permission and reserves it for you,
      * if you'll be able to wait long enough.
@@ -187,23 +196,30 @@ public class AtomicRateLimiter implements RateLimiter {
      * @return next {@link State}
      */
     private State calculateNextState(final long timeoutInNanos, final State activeState) {
+        // 时间周期，默认500纳秒
         long cyclePeriodInNanos = activeState.config.getLimitRefreshPeriodInNanos();
+        // 每个周期允许的token数，默认50个
         int permissionsPerCycle = activeState.config.getLimitForPeriod();
-
+        // 从限流器启动到当前，经过的纳秒数
         long currentNanos = currentNanoTime();
+        // 周期号，计算当前应该属于第几周期
         long currentCycle = currentNanos / cyclePeriodInNanos;
-
+        // 将当前状态的属性暂时赋值给下一个状态
         long nextCycle = activeState.activeCycle;
+        // 有可能为负值
         int nextPermissions = activeState.activePermissions;
+        // 判断下一个状态的周期是否与计算的实际周期相同，不同则重新计算周期号及允许的token数
         if (nextCycle != currentCycle) {
             long elapsedCycles = currentCycle - nextCycle;
             long accumulatedPermissions = elapsedCycles * permissionsPerCycle;
             nextCycle = currentCycle;
             nextPermissions = (int) min(nextPermissions + accumulatedPermissions, permissionsPerCycle);
         }
+        // 计算获取下一个token所需等待的时间
         long nextNanosToWait = nanosToWaitForPermission(
                 cyclePeriodInNanos, permissionsPerCycle, nextPermissions, currentNanos, currentCycle
         );
+        // 生成新的状态
         State nextState = reservePermissions(activeState.config, timeoutInNanos, nextCycle, nextPermissions, nextNanosToWait);
         return nextState;
     }
@@ -219,10 +235,13 @@ public class AtomicRateLimiter implements RateLimiter {
      * @param currentCycle         current {@link AtomicRateLimiter} cycle    @return nanoseconds to wait for the next permission
      */
     private long nanosToWaitForPermission(final long cyclePeriodInNanos, final int permissionsPerCycle,
-                                          final int availablePermissions, final long currentNanos, final long currentCycle) {
+                                          final int availablePermissions, final long currentNanos,
+                                          final long currentCycle) {
+        // 可用token大于零，则不用等待
         if (availablePermissions > 0) {
             return 0L;
         }
+        // 计算下一个token所需等待的时间
         long nextCycleTimeInNanos = (currentCycle + 1) * cyclePeriodInNanos;
         long nanosToNextCycle = nextCycleTimeInNanos - currentNanos;
         int fullCyclesToWait = (-availablePermissions) / permissionsPerCycle;
@@ -244,6 +263,8 @@ public class AtomicRateLimiter implements RateLimiter {
                                      final long cycle, final int permissions, final long nanosToWait) {
         boolean canAcquireInTime = timeoutInNanos >= nanosToWait;
         int permissionsWithReservation = permissions;
+        // 如果当前请求线程的超时时间大于等于等待获取token的时间
+        // 则一定会获取token，所以token数做减减操作
         if (canAcquireInTime) {
             permissionsWithReservation--;
         }
@@ -260,7 +281,7 @@ public class AtomicRateLimiter implements RateLimiter {
     private boolean waitForPermissionIfNecessary(final long timeoutInNanos, final long nanosToWait) {
         boolean canAcquireImmediately = nanosToWait <= 0;
         boolean canAcquireInTime = timeoutInNanos >= nanosToWait;
-
+        // 如果无需等待，则返回true，表示拿到token
         if (canAcquireImmediately) {
             return true;
         }
@@ -270,7 +291,7 @@ public class AtomicRateLimiter implements RateLimiter {
         waitForPermission(timeoutInNanos);
         return false;
     }
-
+    /** 等待获取token **/
     /**
      * Parks {@link Thread} for nanosToWait.
      * <p>If the current thread is {@linkplain Thread#interrupted}
@@ -281,9 +302,11 @@ public class AtomicRateLimiter implements RateLimiter {
      * @return true if caller was not {@link Thread#interrupted} while waiting
      */
     private boolean waitForPermission(final long nanosToWait) {
+        // 等待线程数加一
         waitingThreads.incrementAndGet();
         long deadline = currentNanoTime() + nanosToWait;
         boolean wasInterrupted = false;
+        //
         while (currentNanoTime() < deadline && !wasInterrupted) {
             long sleepBlockDuration = deadline - currentNanoTime();
             parkNanos(sleepBlockDuration);
@@ -353,6 +376,7 @@ public class AtomicRateLimiter implements RateLimiter {
         eventProcessor.consumeEvent(new RateLimiterOnFailureEvent(name));
     }
 
+    /** 限流器状态类，属性都是final的，不可变**/
     /**
      * <p>{@link AtomicRateLimiter.State} represents immutable state of {@link AtomicRateLimiter} where:
      * <ul>
@@ -368,10 +392,13 @@ public class AtomicRateLimiter implements RateLimiter {
      * </ul>
      */
     private static class State {
+        // 限流器配置
         private final RateLimiterConfig config;
-
+        // 当前的周期号
         private final long activeCycle;
+        // 当前周期下的token数
         private final int activePermissions;
+        // 没有可用的token时，获取下一个周期的token，需等待的时间(纳秒)
         private final long nanosToWait;
 
         private State(RateLimiterConfig config,
@@ -381,7 +408,6 @@ public class AtomicRateLimiter implements RateLimiter {
             this.activePermissions = activePermissions;
             this.nanosToWait = nanosToWait;
         }
-
     }
 
     /**
