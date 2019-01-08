@@ -105,7 +105,9 @@ public class AtomicRateLimiter implements RateLimiter {
     @Override
     public boolean getPermission(final Duration timeoutDuration) {
         long timeoutInNanos = timeoutDuration.toNanos();
+        // 状态计算及转换
         State modifiedState = updateStateWithBackOff(timeoutInNanos);
+        // 当前线程是否需要阻塞等待
         boolean result = waitForPermissionIfNecessary(timeoutInNanos, modifiedState.nanosToWait);
         publishRateLimiterEvent(result);
         return result;
@@ -120,12 +122,14 @@ public class AtomicRateLimiter implements RateLimiter {
         State modifiedState = updateStateWithBackOff(timeoutInNanos);
 
         boolean canAcquireImmediately = modifiedState.nanosToWait <= 0;
+        // 无需等待
         if (canAcquireImmediately) {
             publishRateLimiterEvent(true);
             return 0;
         }
 
         boolean canAcquireInTime = timeoutInNanos >= modifiedState.nanosToWait;
+        // 返回等待的时间
         if (canAcquireInTime) {
             publishRateLimiterEvent(true);
             return modifiedState.nanosToWait;
@@ -306,7 +310,7 @@ public class AtomicRateLimiter implements RateLimiter {
         waitingThreads.incrementAndGet();
         long deadline = currentNanoTime() + nanosToWait;
         boolean wasInterrupted = false;
-        //
+        // 阻塞到下一个周期，或者当前线程被中断
         while (currentNanoTime() < deadline && !wasInterrupted) {
             long sleepBlockDuration = deadline - currentNanoTime();
             parkNanos(sleepBlockDuration);
