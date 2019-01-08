@@ -165,6 +165,7 @@ public interface RateLimiter {
      */
     static <T> Supplier<T> decorateSupplier(RateLimiter rateLimiter, Supplier<T> supplier) {
         return () -> {
+            // 等待permission
             waitForPermission(rateLimiter);
             return supplier.get();
         };
@@ -233,11 +234,13 @@ public interface RateLimiter {
     static void waitForPermission(final RateLimiter rateLimiter) throws IllegalStateException, RequestNotPermitted {
         RateLimiterConfig rateLimiterConfig = rateLimiter.getRateLimiterConfig();
         Duration timeoutDuration = rateLimiterConfig.getTimeoutDuration();
+        // 获取permission
         boolean permission = rateLimiter.getPermission(timeoutDuration);
         if (Thread.interrupted()) {
             throw new IllegalStateException("Thread was interrupted during permission wait");
         }
         if (!permission) {
+            // 如果不被允许，则抛出异常
             throw new RequestNotPermitted("Request not permitted for limiter: " + rateLimiter.getName());
         }
     }
