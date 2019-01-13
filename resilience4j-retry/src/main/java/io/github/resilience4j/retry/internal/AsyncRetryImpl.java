@@ -67,8 +67,9 @@ public class AsyncRetryImpl<T> implements AsyncRetry {
     }
 
     public final class ContextImpl implements AsyncRetry.Context<T> {
-
+        // 原子整型类，记录重试次数
         private final AtomicInteger numOfAttempts = new AtomicInteger(0);
+        // 原子引用类，记录异常
         private final AtomicReference<Throwable> lastException = new AtomicReference<>();
 
         @Override
@@ -84,6 +85,7 @@ public class AsyncRetryImpl<T> implements AsyncRetry {
 
         @Override
         public long onError(Throwable throwable) {
+            // 不符合异常预期，则返回-1。
             if (!exceptionPredicate.test(throwable)) {
                 failedWithoutRetryCounter.increment();
                 publishRetryEvent(() -> new RetryOnIgnoredErrorEvent(getName(), throwable));
@@ -91,25 +93,28 @@ public class AsyncRetryImpl<T> implements AsyncRetry {
             }
             lastException.set(throwable);
             int attempt = numOfAttempts.incrementAndGet();
-
+            // 大于等于重试次数，返回-1
             if (attempt >= maxAttempts) {
                 failedAfterRetryCounter.increment();
                 publishRetryEvent(() -> new RetryOnErrorEvent(name, attempt, throwable));
                 return -1;
             }
-
+            // 返回等待时间
             long interval = intervalFunction.apply(attempt);
+            // 发布事件
             publishRetryEvent(() -> new RetryOnRetryEvent(getName(), attempt, throwable, interval));
             return interval;
         }
 
         @Override
         public long onResult(T result) {
+            // 判断是否符合调用结果预期，不符合则返回-1
             if (null != resultPredicate && resultPredicate.test(result)) {
                 int attempt = numOfAttempts.incrementAndGet();
                 if (attempt >= maxAttempts) {
                     return -1;
                 }
+                // 返回等待时间
                 return intervalFunction.apply(attempt);
             } else {
                 return -1;

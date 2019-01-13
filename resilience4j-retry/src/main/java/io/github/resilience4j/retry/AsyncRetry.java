@@ -110,7 +110,9 @@ public interface AsyncRetry {
         return () -> {
 
             final CompletableFuture<T> promise = new CompletableFuture<>();
-	        @SuppressWarnings("unchecked") final Runnable block = new AsyncRetryBlock<>(scheduler, retry.context(), supplier, promise);
+            // 启动一个异步 schedule 线程进行重试
+	        @SuppressWarnings("unchecked")
+            final Runnable block = new AsyncRetryBlock<>(scheduler, retry.context(), supplier, promise);
             block.run();
 
             return promise;
@@ -156,19 +158,19 @@ public interface AsyncRetry {
     }
 
 	interface Context<T> {
-
+        /** 调用成功，记录相关监控数据 */
         /**
          *  Records a successful call.
          */
         void onSuccess();
-
+        /** 记录调用失败 */
         /**
          * Records an failed call.
          * @param throwable the exception to handle
          * @return delay in milliseconds until the next try
          */
         long onError(Throwable throwable);
-
+        /** 检查调用结果 */
 		/**
 		 * check the result call.
 		 *
@@ -223,11 +225,13 @@ class AsyncRetryBlock<T> implements Runnable {
             onError(t);
             return;
         }
-
+        // 调用回调函数
         stage.whenComplete((result, t) -> {
 	        if (result != null) {
+	            // 有结果
 		        onResult(result);
 	        } else if (t != null) {
+	            // 有异常
                 onError(t);
             }
         });
@@ -235,21 +239,24 @@ class AsyncRetryBlock<T> implements Runnable {
 
     private void onError(Throwable t) {
         final long delay = retryContext.onError(t);
-
+        // 不符合异常预期
         if (delay < 1) {
+            // 抛出异常
             promise.completeExceptionally(t);
         } else {
+            // 每隔delay毫秒，执行一次本线程
             scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
         }
     }
 
 	private void onResult(T result) {
 		final long delay = retryContext.onResult(result);
-
+        // 不符合重试调结果预期
 		if (delay < 1) {
 			promise.complete(result);
 			retryContext.onSuccess();
 		} else {
+            // 每隔delay毫秒，执行一次本线程
 			scheduler.schedule(this, delay, TimeUnit.MILLISECONDS);
 		}
 	}
