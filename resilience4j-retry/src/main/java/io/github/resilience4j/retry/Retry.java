@@ -219,16 +219,21 @@ public interface Retry {
      */
     static <T> Supplier<T> decorateSupplier(Retry retry, Supplier<T> supplier){
         return () -> {
+            // 创建Context
 	        @SuppressWarnings("unchecked")
 	        Retry.Context<T> context = retry.context();
             do try {
+                // 调用后端接口
 	            T result = supplier.get();
+	            // 判断调用结果是否符合预期结果，符合则阻塞等待，然后重试
 	            final boolean validationOfResult = context.onResult(result);
+                // 不符合预期结果，则记录相关监控数据
 	            if (!validationOfResult) {
 		            context.onSuccess();
 		            return result;
 	            }
             } catch (RuntimeException runtimeException) {
+                // 符合预期的运行时异常则阻塞等待，不符合则抛出异常
                 context.onRuntimeError(runtimeException);
             } while (true);
         };
@@ -352,18 +357,20 @@ public interface Retry {
 	 * @param <T> the result type
 	 */
 	interface Context<T> {
-
+        /** 调用成功，记录相关监控数据 */
         /**
          *  Records a successful call.
          */
         void onSuccess();
 
+        /** 根据调用结果，判断是否符合预期，为 true 则阻塞等待 */
 		/**
 		 * @param result the returned result from the called logic
 		 * @return true if we need to retry again or false if no retry anymore
 		 */
 		boolean onResult(T result);
 
+		/** 符合异常预期，则阻塞等待 */
         /**
          * Handles a checked exception
          *
@@ -372,6 +379,7 @@ public interface Retry {
          */
         void onError(Exception exception) throws Throwable;
 
+        /** 符合运行时异常预期，则阻塞等待 */
         /**
          * Handles a runtime exception
          *

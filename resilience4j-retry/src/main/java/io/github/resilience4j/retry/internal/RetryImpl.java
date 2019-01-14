@@ -71,31 +71,36 @@ public class RetryImpl<T> implements Retry {
     }
 
     public final class ContextImpl implements Retry.Context<T> {
-
+        // 原子整型类，记录重试次数
         private final AtomicInteger numOfAttempts = new AtomicInteger(0);
+        // 原子引用类，记录业务异常
         private final AtomicReference<Exception> lastException = new AtomicReference<>();
+        // 原子引用类，记录运行时异常
         private final AtomicReference<RuntimeException> lastRuntimeException = new AtomicReference<>();
 
         private ContextImpl() {
         }
-
+        /** 调用成功，记录相关监控数据 */
         public void onSuccess() {
             int currentNumOfAttempts = numOfAttempts.get();
             if(currentNumOfAttempts > 0){
                 succeededAfterRetryCounter.increment();
                 Throwable throwable = Option.of(lastException.get()).getOrElse(lastRuntimeException.get());
+                // 发布重试成功事件，将重试次数和最后一次异常信息发布出去
                 publishRetryEvent(() -> new RetryOnSuccessEvent(getName(), currentNumOfAttempts, throwable));
             }else{
                 succeededWithoutRetryCounter.increment();
             }
         }
-
         public boolean onResult(T result) {
+            // 判断是否符合调用结果预期
             if (null != resultPredicate && resultPredicate.test(result)) {
                 int currentNumOfAttempts = numOfAttempts.incrementAndGet();
+                // 重试次数大于等于最大重试次数则返回false，无需等待
                 if (currentNumOfAttempts >= maxAttempts) {
                     return false;
                 } else {
+                    // 阻塞一段时间后，返回true，进行重试
 	                waitIntervalAfterFailure(currentNumOfAttempts, null);
                     return true;
                 }
@@ -104,21 +109,26 @@ public class RetryImpl<T> implements Retry {
         }
 
         public void onError(Exception exception) throws Throwable{
+            // 符合异常预期，记录异常
             if(exceptionPredicate.test(exception)){
                 lastException.set(exception);
+                // 小于最大重试次数则阻塞等待，否则抛出此异常
                 throwOrSleepAfterException();
             }else{
+                // 不符合异常预期，则发布事件，抛出此异常
                 failedWithoutRetryCounter.increment();
                 publishRetryEvent(() -> new RetryOnIgnoredErrorEvent(getName(), exception));
                 throw exception;
             }
         }
-
         public void onRuntimeError(RuntimeException runtimeException){
+            // 符合运行时异常预期，记录运行时异常
             if(exceptionPredicate.test(runtimeException)){
                 lastRuntimeException.set(runtimeException);
+                // 小于最大重试次数则阻塞等待，否则抛出此异常
                 throwOrSleepAfterRuntimeException();
             }else{
+                // 不符合运行时异常预期，则发布事件，抛出此异常
                 failedWithoutRetryCounter.increment();
                 publishRetryEvent(() -> new RetryOnIgnoredErrorEvent(getName(), runtimeException));
                 throw runtimeException;
@@ -148,11 +158,12 @@ public class RetryImpl<T> implements Retry {
                 waitIntervalAfterFailure(currentNumOfAttempts, throwable);
             }
         }
-
+        /** 等待重试 */
         private void waitIntervalAfterFailure(int currentNumOfAttempts, Throwable throwable) {
             // wait interval until the next attempt should start
             long interval = intervalFunction.apply(numOfAttempts.get());
             publishRetryEvent(()-> new RetryOnRetryEvent(getName(), currentNumOfAttempts, throwable, interval));
+            // sleepFunction = Thread::sleep
             Try.run(() -> sleepFunction.accept(interval))
                     .getOrElseThrow(ex -> lastRuntimeException.get());
         }
