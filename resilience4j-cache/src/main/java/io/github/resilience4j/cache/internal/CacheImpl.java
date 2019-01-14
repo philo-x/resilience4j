@@ -58,25 +58,22 @@ public class CacheImpl<K, V>  implements Cache<K,V> {
         return metrics;
     }
 
+    /** 使用缓存的入口方法 */
     @Override
     public V computeIfAbsent(K cacheKey, CheckedFunction0<V> supplier) {
-        return getValueFromCache(cacheKey)
-                .getOrElse(() -> computeAndPut(cacheKey, supplier));
+        return getValueFromCache(cacheKey)                           // 从缓存中获取值
+                .getOrElse(() -> computeAndPut(cacheKey, supplier)); // 缓存中没有，则调用方法，将值放入缓存
     }
-
-    private V computeAndPut(K cacheKey, CheckedFunction0<V> supplier) {
-        return Try.of(supplier)
-                .andThen(value -> putValueIntoCache(cacheKey, value))
-            .get();
-    }
-
     private Option<V> getValueFromCache(K cacheKey){
         try {
+            // 从缓存中取值
             Option<V> result = Option.of(cache.get(cacheKey));
             if (result.isDefined()) {
+                // 有值，则记录缓存命中，返回缓存值
                 onCacheHit(cacheKey);
                 return result;
             } else {
+                // 无值，则记录缓存没有命中，返回None
                 onCacheMiss(cacheKey);
                 return result;
             }
@@ -86,7 +83,13 @@ public class CacheImpl<K, V>  implements Cache<K,V> {
             return Option.none();
         }
     }
-
+    /** 调用后端接口，将调用结果放入缓存 */
+    private V computeAndPut(K cacheKey, CheckedFunction0<V> supplier) {
+        return Try.of(supplier)
+                .andThen(value -> putValueIntoCache(cacheKey, value))
+            .get();
+    }
+    /** 将结果放入缓存 */
     private void putValueIntoCache(K cacheKey, V value) {
         try {
             if(value != null) {

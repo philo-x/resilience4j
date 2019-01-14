@@ -65,6 +65,7 @@ public interface Cache<K, V>  {
      */
     EventPublisher getEventPublisher();
 
+    /** 创建Cache的实现类 */
     /**
      * Creates a Retry with default configuration.
      *
@@ -92,6 +93,10 @@ public interface Cache<K, V>  {
         return (K cacheKey) -> cache.computeIfAbsent(cacheKey, supplier);
     }
 
+    /**
+     * 创建一个函数，根据传入的cacheKey，返回缓存中存在的cacheValue
+     * 如果不存在，则调用Supplier::get执行调用方法，然后将结果放入缓存
+     */
     /**
      * Creates a functions which returns a value from a cache, if it exists.
      * Otherwise it calls the Supplier.
