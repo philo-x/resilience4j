@@ -13,7 +13,7 @@ import java.util.function.Supplier;
  * A TimeLimiter decorator stops execution after a configurable duration.
  */
 public interface TimeLimiter {
-
+    /** 使用默认配置创建TimeLimiter */
     /**
      * Creates a TimeLimiter decorator with a default TimeLimiterConfig configuration.
      *
@@ -22,7 +22,7 @@ public interface TimeLimiter {
     static TimeLimiter ofDefaults() {
         return new TimeLimiterImpl(TimeLimiterConfig.ofDefaults());
     }
-
+    /** 使用定制配置创建TimeLimiter */
     /**
      * Creates a TimeLimiter decorator with a TimeLimiterConfig configuration.
      *
@@ -32,7 +32,7 @@ public interface TimeLimiter {
     static TimeLimiter of(TimeLimiterConfig timeLimiterConfig) {
         return new TimeLimiterImpl(timeLimiterConfig);
     }
-
+    /** 根据传入的超时时长创建TimeLimiter */
     /**
      * Creates a TimeLimiter decorator with a timeout Duration.
      *
@@ -60,9 +60,11 @@ public interface TimeLimiter {
         return () -> {
             Future<T> future = futureSupplier.get();
             try {
+                // 同步等待
                 return future.get(timeLimiter.getTimeLimiterConfig().getTimeoutDuration().toMillis(), TimeUnit.MILLISECONDS);
             } catch (TimeoutException e) {
                 if(timeLimiter.getTimeLimiterConfig().shouldCancelRunningFuture()){
+                    // 超时后终止线程
                     future.cancel(true);
                 }
                 throw e;

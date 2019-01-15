@@ -6,8 +6,9 @@ import static java.util.Objects.requireNonNull;
 
 public class TimeLimiterConfig {
     private static final String TIMEOUT_DURATION_MUST_NOT_BE_NULL = "TimeoutDuration must not be null";
-
+    // 超时时长，默认1秒
     private Duration timeoutDuration =  Duration.ofSeconds(1);
+    // 超时后是否终止线程运行，默认为true
     private boolean cancelRunningFuture = true;
 
     private TimeLimiterConfig() {
