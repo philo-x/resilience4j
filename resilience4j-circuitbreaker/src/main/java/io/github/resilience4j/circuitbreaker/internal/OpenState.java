@@ -43,6 +43,7 @@ final class OpenState extends CircuitBreakerState {
     /**
      * 如果到达了打开状态的持续时间，则触发状态机，从打开状态转换到半开状态，允许请求调用后端接口
      * 否则返回false，不允许请求调用后端接口
+     * 只有OpenState才由调用时，触发状态转换
      */
     @Override
     boolean isCallPermitted() {
