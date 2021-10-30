@@ -101,6 +101,7 @@ public class AtomicRateLimiter implements RateLimiter {
 
     /**
      * {@inheritDoc}
+     * 令牌桶的大小由超时时间决定。
      */
     @Override
     public boolean getPermission(final Duration timeoutDuration) {
@@ -217,6 +218,7 @@ public class AtomicRateLimiter implements RateLimiter {
             long elapsedCycles = currentCycle - nextCycle;
             long accumulatedPermissions = elapsedCycles * permissionsPerCycle;
             nextCycle = currentCycle;
+            // 随着时间时间流逝，每一个周期都会往桶里面新增令牌
             nextPermissions = (int) min(nextPermissions + accumulatedPermissions, permissionsPerCycle);
         }
         // 计算获取下一个token所需等待的时间
@@ -231,7 +233,7 @@ public class AtomicRateLimiter implements RateLimiter {
     /**
      * Calculates time to wait for next permission as
      * [time to the next cycle] + [duration of full cycles until reserved permissions expire]
-     *
+     * 到下一个周期还需要多长时间 + 之前有多少人在排队
      * @param cyclePeriodInNanos   current configuration values
      * @param permissionsPerCycle  current configuration values
      * @param availablePermissions currently available permissions, can be negative if some permissions have been reserved
@@ -267,8 +269,7 @@ public class AtomicRateLimiter implements RateLimiter {
                                      final long cycle, final int permissions, final long nanosToWait) {
         boolean canAcquireInTime = timeoutInNanos >= nanosToWait;
         int permissionsWithReservation = permissions;
-        // 如果当前请求线程的超时时间大于等于等待获取token的时间
-        // 则一定会获取token，所以token数做减减操作
+        // 月月说我们最多等10分钟，服务员说下一位还要等30分钟，不吃了！
         if (canAcquireInTime) {
             permissionsWithReservation--;
         }
@@ -400,7 +401,7 @@ public class AtomicRateLimiter implements RateLimiter {
         private final RateLimiterConfig config;
         // 当前的周期号
         private final long activeCycle;
-        // 当前周期下的token数
+        // 当前周期下的token数：[只要timeoutInNanos >= nanosToWait就一直减,activeState.config.getLimitForPeriod()]
         private final int activePermissions;
         // 没有可用的token时，获取下一个周期的token，需等待的时间(纳秒)
         private final long nanosToWait;
